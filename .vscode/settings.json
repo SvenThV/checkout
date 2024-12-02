@@ -1,0 +1,14 @@
+{
+    "sqltools.connections": [
+        {
+            "previewLimit": 50,
+            "server": "localhost",
+            "port": 5432,
+            "driver": "PostgreSQL",
+            "name": "postgres local",
+            "database": "barcode_scanner",
+            "username": "postgres",
+            "password": "sven"
+        }
+    ]
+}

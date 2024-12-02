@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cart | Enhanced Layout</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>Your Cart</h1>
+    </header>
+
+    <main>
+        <ul id="cart-list" class="cart-list">
+            <!-- Dynamic cart items will be inserted here -->
+        </ul>
+        <p id="cart-total"><strong>Total: </strong>$0.00</p>
+        <button id="checkout-button" class="checkout-button">Proceed to Checkout</button>
+    </main>
+
+    <footer class="footer">
+        <a href="index.html" class="icon" aria-label="Home">🏠</a>
+        <a href="barcode.html" class="icon" aria-label="Scanner">🔍</a>
+        <a href="receipts.html" class="icon" aria-label="Receipts">📄</a>
+        <a href="cart.html" class="icon" aria-label="Cart">📦</a>
+        <a href="account.html" class="icon" aria-label="Account">👤</a>
+    </footer>
+
+    <script>
+        async function loadCart() {
+            const cartList = document.getElementById("cart-list");
+            const cartTotal = document.getElementById("cart-total");
+            const checkoutButton = document.getElementById("checkout-button");
+
+            try {
+                const cartResponse = await fetch("http://localhost:5000/api/cart");
+                const bookmarkResponse = await fetch("http://localhost:5000/api/bookmarks");
+
+                if (!cartResponse.ok || !bookmarkResponse.ok) throw new Error("Failed to load cart or bookmarks");
+
+                const cart = await cartResponse.json();
+                const bookmarks = await bookmarkResponse.json();
+
+                cartList.innerHTML = cart.map(item => {
+                    const isBookmarked = bookmarks.some(b => b.product_id === item.product_id);
+                    const productSum = (item.price * item.quantity).toFixed(2);
+                    return `
+                        <li class="cart-item">
+                            <div class="product-details">
+                                <span class="cart-product-name">${item.product_name}</span>
+                                <span class="cart-product-price">Unit Price: $${item.price.toFixed(2)}</span>
+                            </div>
+                            <div class="product-summary">
+                                <span class="cart-product-quantity">Quantity: ${item.quantity}</span>
+                                <span class="cart-product-total">Total: $${productSum}</span>
+                            </div>
+                            <div class="cart-quantity">
+                                <button onclick="updateQuantity('${item.product_id}', ${item.quantity - 1})">-</button>
+                                <span>${item.quantity}</span>
+                                <button onclick="updateQuantity('${item.product_id}', ${item.quantity + 1})">+</button>
+                            </div>
+                            <span class="cart-remove" onclick="removeProduct('${item.product_id}')">Remove</span>
+                            <span 
+                                class="bookmark-star" 
+                                data-product-id="${item.product_id}" 
+                                data-bookmarked="${isBookmarked}"
+                                onclick="toggleBookmark(this, '${item.product_id}', '${item.product_name.replace(/'/g, "\\'")}', ${item.price})">
+                                ${isBookmarked ? "&#9733;" : "&#9734;"}
+                            </span>
+                        </li>`;
+                }).join("");
+
+                const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+                cartTotal.innerHTML = `<strong>Total: </strong>$${total.toFixed(2)}`;
+                checkoutButton.disabled = cart.length === 0;
+            } catch (error) {
+                console.error("Error loading cart or bookmarks:", error);
+                cartList.innerHTML = "<p>Failed to load cart. Please try again later.</p>";
+                cartTotal.innerHTML = `<strong>Total: </strong>$0.00`;
+                checkoutButton.disabled = true;
+            }
+        }
+
+        async function toggleBookmark(starElement, productId, productName, price) {
+            const isBookmarked = starElement.getAttribute("data-bookmarked") === "true";
+
+            try {
+                const response = await fetch("http://localhost:5000/api/bookmarks", {
+                    method: isBookmarked ? "DELETE" : "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ product_id: productId, product_name: productName, price }),
+                });
+
+                if (!response.ok) throw new Error("Failed to toggle bookmark state");
+
+                starElement.innerHTML = isBookmarked ? "&#9734;" : "&#9733;";
+                starElement.setAttribute("data-bookmarked", !isBookmarked);
+            } catch (error) {
+                console.error(`Error toggling bookmark for product ${productId}:`, error);
+                alert("Failed to toggle bookmark state.");
+            }
+        }
+
+        async function updateQuantity(productId, quantity) {
+            if (quantity < 1 && !confirm("Do you want to remove this item from the cart?")) return;
+
+            try {
+                const response = await fetch(`http://localhost:5000/api/cart/${productId}`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ quantity }),
+                });
+
+                if (!response.ok) throw new Error("Failed to update quantity");
+                loadCart();
+            } catch (error) {
+                console.error("Error updating quantity:", error);
+                alert("Failed to update the product quantity.");
+            }
+        }
+
+        async function removeProduct(productId) {
+            try {
+                const response = await fetch(`http://localhost:5000/api/cart/${productId}`, {
+                    method: "DELETE",
+                });
+
+                if (!response.ok) throw new Error("Failed to remove product");
+                loadCart();
+            } catch (error) {
+                console.error("Error removing product:", error);
+                alert("Failed to remove the product.");
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", loadCart);
+    </script>
+</body>
+</html>
