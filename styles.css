@@ -278,17 +278,13 @@ main {
     text-align: center;
 }
 
-.cart-remove,
-.bookmark-star {
-    flex: 1; /* Consistent space allocation */
-    text-align: center;
-    cursor: pointer;
-    font-size: 1rem;
-}
-
 .cart-remove {
     color: #f00;
     text-decoration: underline;
+    margin-left: auto;
+    text-align: right;
+    cursor: pointer;
+    font-size: 1rem;
 }
 
 .cart-remove:hover {
@@ -299,6 +295,9 @@ main {
     font-size: 2rem;
     color: grey;
     transition: color 0.2s ease;
+    flex: 1; /* Consistent space allocation */
+    text-align: center;
+    cursor: pointer;
 }
 
 .bookmark-star:hover {
@@ -338,38 +337,45 @@ main {
 }
 
 /* Account Settings Section */
+
 .bookmark-list {
     list-style: none;
     padding: 0;
     margin: 0;
+    width: 100%;
 }
 
 .bookmark-item {
-    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 15px;
     margin-bottom: 10px;
     background-color: #fff;
     border: 1px solid #ddd;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border-bottom: 1px solid #ddd;
+    width: 100%; /* Ensure each item spans the full width */
+    box-sizing: border-box; /* Include padding/border in the width calculation */
 }
 
-/* Styling for the bookmark list items */
-.bookmark-item {
-    display: flex;
-    justify-content: space-between; /* Space between name and button */
-    align-items: center; /* Vertically align items */
-    padding: 10px 15px;
-    border-bottom: 1px solid #ddd; /* Optional: Separates items visually */
+.bookmark-item .bookmark-details {
+    flex: 1; /* Text passt sich dynamisch an */
+    margin-right: 10px; /* Abstand zum Button */
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis; /* Langer Text wird abgeschnitten */
 }
 
-/* Styling for the Remove button */
 .bookmark-item .cart-remove {
+    margin-left: auto; /* Schiebt den Button komplett nach rechts */
+    min-width: 80px; /* Einheitliche Breite für den Button */
+    text-align: right;
     font-size: 1rem;
     color: #f00;
     cursor: pointer;
     text-decoration: underline;
-    text-align: center;
-    margin-left: auto; /* Ensures the button stays to the right */
 }
 
 .bookmark-item .cart-remove:hover {

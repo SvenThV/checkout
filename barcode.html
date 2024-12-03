@@ -3,20 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Scanner | Checkout</title>
-    <link rel="stylesheet" href="styles.css"> <!-- Shared CSS file -->
+    <title>Barcode Scanner</title>
+    <link rel="stylesheet" href="styles.css"> <!-- Shared styles for consistency -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
+    <style>
+        main {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 70vh;
+        }
+
+        #scanner-container {
+            width: 480px; /* Reduced size for a smaller scanner field */
+            height: 360px;
+            border: 2px solid #ccc;
+            margin: 20px auto;
+            background-color: #f9f9f9;
+        }
+
+        #output {
+            margin: 10px;
+            font-size: 16px;
+            color: #333;
+        }
+    </style>
 </head>
 <body>
+    <!-- Shared Header -->
     <header>
         <h1>Barcode Scanner</h1>
     </header>
 
     <main>
-        <section id="scanner-section">
-            <div id="scanner-container"></div>
-            <p id="output">Scanning...</p>
-        </section>
+        <div id="scanner-container"></div>
+        <p id="output">Initializing scanner...</p>
     </main>
 
     <footer class="footer">
@@ -28,11 +50,45 @@
     </footer>
 
     <script>
-        document.addEventListener("DOMContentLoaded", () => {
-            const selectedShop = localStorage.getItem("selectedShop") || "Hanaro Mart"; // Default shop if none is selected
-            document.querySelector("header h1").textContent = `Shop: ${selectedShop}`;
-            initializeBarcodeScanner();
-        });
+        async function fetchProductDetails(barcode) {
+            console.log("Fetching details for barcode:", barcode);
+
+            const response = await fetch(`http://localhost:5000/api/products/${barcode}`);
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error(`Failed to fetch product details: ${errorText}`);
+                throw new Error("Product not found");
+            }
+
+            const product = await response.json();
+            console.log("Product fetched successfully:", product);
+            return product;
+        }
+
+        async function addToCart(product) {
+            console.log("Adding product to cart:", product);
+
+            const { product_id, product_name, price } = product;
+
+            if (!product_id || !product_name || typeof price === "undefined") {
+                console.error("Invalid product data:", product);
+                throw new Error("Product data is incomplete");
+            }
+
+            const response = await fetch("http://localhost:5000/api/cart", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ product_id, product_name, price: parseFloat(price) }),
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error(`Failed to add product to cart: ${errorText}`);
+                throw new Error("Failed to add product to cart");
+            }
+
+            console.log("Product added to cart successfully");
+        }
 
         function initializeBarcodeScanner() {
             const outputElement = document.getElementById("output");
@@ -46,19 +102,19 @@
                         type: "LiveStream",
                         target: scannerContainer,
                         constraints: {
-                            width: 640,
-                            height: 480,
+                            width: 480,
+                            height: 360,
                             facingMode: "environment", // Rear camera
                         },
                     },
                     decoder: {
-                        readers: ["ean_reader"], // Barcode types
+                        readers: ["ean_reader", "code_128_reader"], // Barcode types
                     },
                 },
                 (err) => {
                     if (err) {
                         console.error("Error initializing Quagga:", err);
-                        outputElement.textContent = handleInitializationError(err);
+                        outputElement.textContent = `Error initializing scanner: ${err.message}`;
                         return;
                     }
                     console.log("Quagga initialized successfully.");
@@ -78,44 +134,18 @@
                     const product = await fetchProductDetails(barcode);
                     await addToCart(product);
                     outputElement.textContent = `Added to cart: ${product.product_name}`;
-                    console.log("Product added to cart:", product);
                 } catch (error) {
-                    console.error(error);
-                    outputElement.textContent = "Error: Product not found or failed to add to cart.";
+                    console.error("Error processing barcode:", error);
+                    outputElement.textContent = `Error: ${error.message}`;
                 }
 
-                setTimeout(() => scannedBarcodes.delete(barcode), 5000);
+                setTimeout(() => scannedBarcodes.delete(barcode), 5000); // Prevent rapid re-scans
             });
         }
 
-        function handleInitializationError(err) {
-            if (err.name === "NotAllowedError" || err.name === "SecurityError") {
-                return "Camera access denied. Please enable camera permissions.";
-            } else if (err.name === "NotFoundError") {
-                return "No camera found. Please connect a camera.";
-            } else {
-                return "Scanner initialization failed.";
-            }
-        }
-
-        async function fetchProductDetails(barcode) {
-            const response = await fetch(`http://localhost:5000/api/products/${barcode}`);
-            if (!response.ok) {
-                throw new Error("Product not found");
-            }
-            return response.json();
-        }
-
-        async function addToCart(product) {
-            const response = await fetch("http://localhost:5000/api/cart", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(product),
-            });
-            if (!response.ok) {
-                throw new Error("Failed to add product to cart");
-            }
-        }
+        document.addEventListener("DOMContentLoaded", () => {
+            initializeBarcodeScanner();
+        });
     </script>
 </body>
 </html>

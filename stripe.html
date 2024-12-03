@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stripe Payment | Checkout</title>
+    <title>Stripe Payment</title>
     <link rel="stylesheet" href="styles.css">
     <script src="https://js.stripe.com/v3/"></script>
 </head>
@@ -27,29 +27,54 @@
     <script>
         document.getElementById("pay-now").addEventListener("click", async () => {
             try {
+                // Retrieve and sanitize cart data
+                const rawCart = JSON.parse(localStorage.getItem("cart")) || [];
+                const sanitizedCart = rawCart.map(item => ({
+                    product_name: item.product_name,
+                    price: parseFloat(item.price), // Ensure price is a number
+                    quantity: parseInt(item.quantity, 10), // Ensure quantity is an integer
+                }));
+    
+                // Ensure cart is valid before proceeding
+                if (!sanitizedCart.length) {
+                    alert("Cart is empty. Please add items to proceed.");
+                    return;
+                }
+    
+                console.log("Sending sanitized cart to backend:", sanitizedCart);
+    
                 // Step 1: Call backend to create a Stripe checkout session
                 const response = await fetch("http://localhost:5000/api/stripe/create-checkout-session", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ cart: sanitizedCart }),
                 });
-
-                if (!response.ok) throw new Error("Failed to create Stripe checkout session");
-
+    
+                if (!response.ok) {
+                    const errorMessage = await response.text();
+                    console.error("Server response:", errorMessage);
+                    throw new Error(errorMessage || "Failed to create Stripe checkout session");
+                }
+    
                 const { sessionId } = await response.json();
-
+                localStorage.removeItem("cart"); // Clear cart after initiating checkout
+    
                 // Step 2: Redirect to Stripe's hosted checkout page
                 const stripe = Stripe("pk_test_51QR9TSA9PYZCuSc2QuoA7tVlfNc6JBBd15hE9h8dJNeLMI4YT6iIJq8XkpSZpY5XsvUBpqM7JP864cjJFur8VUsG00vSEIQIcx");
                 const { error } = await stripe.redirectToCheckout({ sessionId });
-
+    
                 if (error) {
                     console.error("Stripe Checkout Error:", error);
                     alert("An error occurred during payment. Please try again.");
                 }
             } catch (err) {
                 console.error("Error initiating Stripe Checkout:", err);
-                alert("Unable to proceed with Stripe payment. Please try again later.");
+                alert(`Unable to proceed with Stripe payment. Please try again later.\nError: ${err.message}`);
             }
         });
-    </script>
+    </script>    
 </body>
 </html>
+
+
+

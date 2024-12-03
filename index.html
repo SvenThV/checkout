@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Home | Checkout</title>
+    <title>Home</title>
     <link rel="stylesheet" href="styles.css"> <!-- Link to the shared CSS file -->
 </head>
 <body>
@@ -22,15 +22,12 @@
             </div>
         </section>
 
-        <!-- Recent Purchases Section -->
-        <section id="recent-purchases" class="section">
-            <h2>Recent Purchases</h2>
-            <div class="purchase-list">
-                <!-- Static placeholder content -->
-                <div class="purchase-item">Purchase 1</div>
-                <div class="purchase-item">Purchase 2</div>
-                <div class="purchase-item">Purchase 3</div>
-            </div>
+        <!-- Bookmarks Section -->
+        <section id="bookmarks" class="section">
+            <h2>Bookmarks</h2>
+            <ul id="bookmark-list" class="bookmark-list">
+                <!-- Dynamic bookmarks will be inserted here -->
+            </ul>
         </section>
     </main>
 
@@ -43,7 +40,7 @@
         <a href="account.html" class="icon" aria-label="Account">👤</a>
     </footer>
 
-    <!-- JavaScript to Handle Shops -->
+    <!-- JavaScript to Handle Dynamic Content -->
     <script>
         // Define static shop names
         const shops = [
@@ -74,17 +71,62 @@
 
         // Set selected shop in localStorage and highlight the active button
         function selectShop(button, shopName) {
-            // Save the selected shop in localStorage
             localStorage.setItem("selectedShop", shopName);
 
-            // Remove active class from all buttons and add to the clicked one
             const shopButtons = document.querySelectorAll(".shop-card");
             shopButtons.forEach(btn => btn.classList.remove("active"));
             button.classList.add("active");
         }
 
-        // Load shops on page load
-        document.addEventListener("DOMContentLoaded", loadShops);
+        // Load Bookmarks
+        async function loadBookmarks() {
+            const bookmarkList = document.getElementById("bookmark-list");
+
+            try {
+                const response = await fetch("http://localhost:5000/api/bookmarks");
+                if (!response.ok) throw new Error("Failed to fetch bookmarks");
+
+                const bookmarks = await response.json();
+
+                if (bookmarks.length === 0) {
+                    bookmarkList.innerHTML = "<li>No bookmarks added yet.</li>";
+                } else {
+                    bookmarkList.innerHTML = bookmarks.map(bookmark => `
+                        <li class="bookmark-item">
+                            <span>${bookmark.product_name} - $${parseFloat(bookmark.price).toFixed(2)}</span>
+                            <span class="cart-remove" onclick="removeBookmark('${bookmark.product_id}')">Remove</span>
+                        </li>
+                    `).join("");
+                }
+            } catch (error) {
+                console.error("Error loading bookmarks:", error);
+                bookmarkList.innerHTML = "<li>Failed to load bookmarks.</li>";
+            }
+        }
+
+        async function removeBookmark(productId) {
+            try {
+                const response = await fetch(`http://localhost:5000/api/bookmarks/${productId}`, {
+                    method: "DELETE",
+                });
+
+                if (!response.ok) throw new Error("Failed to remove bookmark");
+
+                loadBookmarks(); // Reload bookmarks
+            } catch (error) {
+                console.error(`Error removing bookmark for product ${productId}:`, error);
+                alert("Failed to remove bookmark.");
+            }
+        }
+
+        // Load shops and bookmarks on page load
+        document.addEventListener("DOMContentLoaded", () => {
+            loadShops();
+            loadBookmarks();
+        });
     </script>
 </body>
 </html>
+
+
+
