@@ -136,9 +136,7 @@ main {
 }
 
 /* Receipts Section */
-
 .receipt-list {
-    min-height: 500px;
     list-style: none;
     padding: 0;
     margin: 0;
@@ -185,11 +183,6 @@ main {
     color: #ccc;
 }
 
-.receipt-content {
-    align-items: center;
-    gap: 20px; /* Add spacing between text and button */
-}
-
 .receipt-products {
     padding: 10px 0;
     margin: 0;
@@ -207,23 +200,6 @@ main {
 
 .hidden {
     display: none;
-}
-
-/* Adjust the Delete Receipt button specifically */
-.receipt-item .cart-remove {
-    margin-top: 15px; 
-    margin-bottom: 5px;
-    color: #f00;
-    text-decoration: underline;
-    cursor: pointer;
-    font-size: 1rem;
-    background: none;
-    border: none;
-    padding: 0;
-}
-
-.receipt-item .cart-remove:hover {
-    color: #c00;
 }
 
 /* Responsive Adjustments */
@@ -352,9 +328,6 @@ main {
     text-align: right;
     cursor: pointer;
     font-size: 1rem;
-    background: none;
-    border: none;
-    padding: 0;
 }
 
 .cart-remove:hover {

@@ -43,31 +43,29 @@
         }
 
         async function addToCart(product) {
-    console.log("Adding product to cart:", product);
+            console.log("Adding product to cart:", product);
 
-    const { product_id, product_name, price } = product;
-    const shop_name = localStorage.getItem("selectedShop");
+            const { product_id, product_name, price } = product;
 
-    if (!product_id || !product_name || typeof price === "undefined" || !shop_name) {
-        console.error("Invalid product data or shop not selected:", { product, shop_name });
-        throw new Error("Product data is incomplete or shop not selected");
-    }
+            if (!product_id || !product_name || typeof price === "undefined") {
+                console.error("Invalid product data:", product);
+                throw new Error("Product data is incomplete");
+            }
 
-    const response = await fetch("http://localhost:5000/api/cart", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ product_id, product_name, price: parseFloat(price), shop_name }),
-    });
+            const response = await fetch("http://localhost:5000/api/cart", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ product_id, product_name, price: parseFloat(price) }),
+            });
 
-    if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`Failed to add product to cart: ${errorText}`);
-        throw new Error("Failed to add product to cart");
-    }
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error(`Failed to add product to cart: ${errorText}`);
+                throw new Error("Failed to add product to cart");
+            }
 
-    console.log("Product added to cart successfully");
-}
-
+            console.log("Product added to cart successfully");
+        }
 
         function initializeBarcodeScanner() {
             const outputElement = document.getElementById("output");

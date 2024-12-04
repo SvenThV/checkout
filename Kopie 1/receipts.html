@@ -50,67 +50,40 @@
                     return;
                 }
     
-                // Generate HTML for receipts with details toggle and delete button
+                // Generate HTML for receipts with details toggle
                 receiptList.innerHTML = receipts.map((r, index) => `
-    <li class="receipt-item" onclick="toggleDetails(${index})">
-        <div class="receipt-content">
-            <div class="receipt-date">${new Date(r.purchase_date).toLocaleString()}</div>
-            <div class="receipt-info">$${r.total_sum} at ${r.shop_name}</div>
-            <button class="cart-remove" onclick="event.stopPropagation(); deleteReceipt(${r.receipt_id});">Delete</button>
-        </div>
-        <ul class="receipt-products hidden" id="details-${index}">
-            ${r.items.map(p => `
-                <li>
-                    <strong>${p.product_name}</strong>, 
-                    Unit Price: $${p.price.toFixed(2)}, 
-                    Quantity: ${p.quantity}, 
-                    Total: $${(p.quantity * p.price).toFixed(2)}
-                </li>
-            `).join("")}
-        </ul>
-    </li>
-`).join("");
-
-
-    
+                    <li class="receipt-item" onclick="toggleDetails(${index})">
+                        <div class="receipt-content">
+                            <div class="receipt-date">${new Date(r.purchase_date).toLocaleString()}</div>
+                            <div class="receipt-info">$${r.total_sum} at ${r.shop_name}</div>
+                        </div>
+                        <ul class="receipt-products hidden" id="details-${index}">
+                            ${r.items.map(p => `
+                                <li>
+                                    <strong>${p.product_name}</strong>, 
+                                    Unit Price: $${p.price.toFixed(2)}, 
+                                    Quantity: ${p.quantity}, 
+                                    Total: $${(p.quantity * p.price).toFixed(2)}
+                                </li>
+                            `).join("")}
+                        </ul>
+                    </li>
+                `).join("");
             } catch (error) {
                 console.error("Error loading receipts:", error);
                 receiptList.innerHTML = "<p>Failed to load receipts.</p>";
             }
         }
     
-        // Function to delete a receipt
-async function deleteReceipt(receiptId) {
-    try {
-        const response = await fetch(`http://localhost:5000/api/receipts/${receiptId}`, {
-            method: "DELETE",
-        });
-
-        if (!response.ok) {
-            const errorText = await response.json();
-            console.error(`Failed to delete receipt: ${errorText.message}`);
-            throw new Error(errorText.message || "Failed to delete receipt.");
-        }
-
-        console.log("Receipt deleted successfully.");
-        loadReceipts(); // Reload the receipts after deletion
-    } catch (error) {
-        console.error("Error deleting receipt:", error);
-        alert("Failed to delete receipt. Please try again.");
-    }
-}
-
-        document.addEventListener("DOMContentLoaded", loadReceipts);
-
         // Function to toggle the visibility of receipt details
-    function toggleDetails(index) {
-        const detailsElement = document.getElementById(`details-${index}`);
-        if (detailsElement) {
-            detailsElement.classList.toggle("hidden");
+        function toggleDetails(index) {
+            const detailsElement = document.getElementById(`details-${index}`);
+            if (detailsElement) {
+                detailsElement.classList.toggle("hidden");
+            }
         }
-    }
-        
-    </script>
     
+        document.addEventListener("DOMContentLoaded", loadReceipts);
+    </script>
 </body>
 </html>

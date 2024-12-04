@@ -47,28 +47,12 @@ app.get("/api/products/:barcode", async (req, res) => {
 
 
 // API endpoint to add a product to the cart
-// API endpoint to add a product to the cart
 app.post("/api/cart", async (req, res) => {
     const { product_id, product_name, price, shop_name } = req.body;
 
-    // Validate product data
-    if (!product_id || !product_name || typeof price === "undefined" || isNaN(price)) {
+    if (!product_id || !product_name || typeof price === "undefined" || isNaN(price) || !shop_name) {
         console.error("Invalid product data received:", req.body);
         return res.status(400).json({ message: "Invalid product data" });
-    }
-
-    // Assign a default shop if none is provided
-    let selectedShop = shop_name || "Hanaro Mart"; // Default to "Hanaro Mart" if no shop is provided
-
-    // Validate shop name against a known list of shops
-    const validShops = [
-        "Hanaro Mart", "CU", "GS25", "7-Eleven", 
-        "Emart24", "Lotte Super", "E-Mart", 
-        "Homeplus", "Lotte Mart"
-    ];
-    if (!validShops.includes(selectedShop)) {
-        console.error(`Invalid shop name: ${selectedShop}`);
-        return res.status(400).json({ message: `Invalid shop name: ${selectedShop}` });
     }
 
     try {
@@ -76,7 +60,7 @@ app.post("/api/cart", async (req, res) => {
         const cartCheck = await pool.query("SELECT DISTINCT shop_name FROM cart");
         if (cartCheck.rows.length > 0) {
             const existingShop = cartCheck.rows[0].shop_name;
-            if (existingShop !== selectedShop) {
+            if (existingShop !== shop_name) {
                 return res.status(400).json({
                     message: `Cart is associated with ${existingShop}. Please clear the cart before adding products from another shop.`,
                 });
@@ -90,17 +74,15 @@ app.post("/api/cart", async (req, res) => {
         );
 
         if (existingProduct.rows.length > 0) {
-            // Update quantity if the product already exists in the cart
             await pool.query(
                 "UPDATE cart SET quantity = quantity + 1 WHERE product_id = $1",
                 [product_id]
             );
         } else {
-            // Add the product to the cart if it doesn't exist
             await pool.query(
                 `INSERT INTO cart (product_id, product_name, price, quantity, shop_name) 
                  VALUES ($1, $2, $3, $4, $5)`,
-                [product_id, product_name, price, 1, selectedShop]
+                [product_id, product_name, price, 1, shop_name]
             );
         }
 
@@ -110,7 +92,6 @@ app.post("/api/cart", async (req, res) => {
         res.status(500).json({ message: "Server error" });
     }
 });
-
 
 
 // API endpoint to retrieve cart items
@@ -185,58 +166,28 @@ app.delete("/api/cart/:productId", async (req, res) => {
 // API endpoint to clear the cart (checkout)
 app.post("/api/cart/checkout", async (req, res) => {
     try {
-        const cartItems = await pool.query("SELECT * FROM cart");
-        if (cartItems.rows.length === 0) {
-            return res.status(400).json({ message: "Cart is empty." });
+        const result = await pool.query("SELECT * FROM cart");
+        if (result.rows.length === 0) {
+            return res.status(400).json({ message: "Cart is empty" });
         }
 
-        const shopName = cartItems.rows[0].shop_name;
-        const totalSum = cartItems.rows.reduce((sum, item) => sum + item.price * item.quantity, 0);
-
-        const receiptResult = await pool.query(
-            `INSERT INTO Receipts (shop_name, total_sum) VALUES ($1, $2) RETURNING receipt_id`,
-            [shopName, totalSum]
-        );
-
-        const receiptId = receiptResult.rows[0].receipt_id;
-        const insertPromises = cartItems.rows.map(item =>
-            pool.query(
-                `INSERT INTO ReceiptItems (receipt_id, product_id, quantity, price) VALUES ($1, $2, $3, $4)`,
-                [receiptId, item.product_id, item.quantity, item.price]
-            )
-        );
-        await Promise.all(insertPromises);
-
-        // Clear the cart after successful insertion
-        await pool.query("DELETE FROM cart");
-
-        const receiptDetails = {
-            receiptId,
-            shopName,
-            totalSum,
-            items: cartItems.rows.map(item => ({
-                product_id: item.product_id,
-                product_name: item.product_name,
+        const receipt = {
+            products: result.rows.map(item => ({
+                name: item.product_name,
                 quantity: item.quantity,
                 price: item.price,
-                total: item.quantity * item.price,
             })),
+            totalAmount: result.rows
+                .reduce((sum, item) => sum + item.price * item.quantity, 0)
+                .toFixed(2),
+            date: new Date().toLocaleString(),
         };
 
-        res.status(200).json({ message: "Checkout successful", receipt: receiptDetails });
-    } catch (err) {
-        console.error("Checkout error:", err);
-        res.status(500).json({ message: "Server error during checkout." });
-    }
-});
-
-// API endpoint to clear the cart
-app.delete("/api/cart", async (req, res) => {
-    try {
         await pool.query("DELETE FROM cart");
-        res.status(200).json({ message: "Cart cleared successfully" });
+
+        res.status(200).json({ message: "Checkout successful", receipt });
     } catch (err) {
-        console.error("Error clearing cart:", err);
+        console.error("Error during checkout:", err);
         res.status(500).json({ message: "Server error" });
     }
 });
@@ -411,13 +362,14 @@ app.post("/api/stripe/payment-success", async (req, res) => {
     }
 });
 
+
 // API to retrieve all receipts
 app.get("/api/receipts", async (req, res) => {
     try {
         const receipts = await pool.query(`
             SELECT 
                 r.receipt_id, 
-                r.purchase_date AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Seoul' AS purchase_date,
+                r.purchase_date, 
                 r.shop_name, 
                 r.total_sum,
                 json_agg(
@@ -440,33 +392,6 @@ app.get("/api/receipts", async (req, res) => {
         res.status(500).send("Failed to retrieve receipts.");
     }
 });
-
-// API endpoint to delete a receipt by receipt_id
-app.delete("/api/receipts/:receiptId", async (req, res) => {
-    const { receiptId } = req.params;
-
-    if (!receiptId) {
-        return res.status(400).json({ message: "Receipt ID is required." });
-    }
-
-    try {
-        // Delete related items from ReceiptItems
-        await pool.query("DELETE FROM ReceiptItems WHERE receipt_id = $1", [receiptId]);
-
-        // Delete the receipt itself
-        const result = await pool.query("DELETE FROM Receipts WHERE receipt_id = $1 RETURNING *", [receiptId]);
-
-        if (result.rowCount === 0) {
-            return res.status(404).json({ message: "Receipt not found." });
-        }
-
-        res.status(200).json({ message: "Receipt deleted successfully." });
-    } catch (err) {
-        console.error("Error deleting receipt:", err);
-        res.status(500).json({ message: "Server error during receipt deletion." });
-    }
-});
-
 
 
 

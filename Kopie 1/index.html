@@ -57,49 +57,26 @@
 
         // Load shops dynamically and mark the active shop
         function loadShops() {
-    const shopList = document.getElementById("shop-list");
-    let selectedShop = localStorage.getItem("selectedShop");
+            const shopList = document.getElementById("shop-list");
+            const selectedShop = localStorage.getItem("selectedShop");
 
-    // Preselect "Hanaro Mart" if no shop is selected
-    if (!selectedShop) {
-        selectedShop = "Hanaro Mart";
-        localStorage.setItem("selectedShop", selectedShop);
-    }
+            shopList.innerHTML = shops
+                .map(shop => `
+                    <button class="shop-card ${shop === selectedShop ? "active" : ""}" onclick="selectShop(this, '${shop}')">
+                        ${shop}
+                    </button>
+                `)
+                .join("");
+        }
 
-    shopList.innerHTML = shops
-        .map(shop => `
-            <button class="shop-card ${shop === selectedShop ? "active" : ""}" onclick="selectShop(this, '${shop}')">
-                ${shop}
-            </button>
-        `)
-        .join("");
-}
+        // Set selected shop in localStorage and highlight the active button
+        function selectShop(button, shopName) {
+            localStorage.setItem("selectedShop", shopName);
 
-
-        async function clearCart() {
-    try {
-        const response = await fetch("http://localhost:5000/api/cart", { method: "DELETE" });
-        if (!response.ok) throw new Error("Failed to clear cart.");
-        console.log("Cart cleared successfully.");
-    } catch (error) {
-        console.error("Error clearing cart:", error);
-    }
-}
-
-
-function selectShop(button, shopName) {
-    const previousShop = localStorage.getItem("selectedShop");
-    if (previousShop && previousShop !== shopName) {
-        clearCart(); // Clear cart when switching shops
-    }
-
-    localStorage.setItem("selectedShop", shopName);
-    const shopButtons = document.querySelectorAll(".shop-card");
-    shopButtons.forEach(btn => btn.classList.remove("active"));
-    button.classList.add("active");
-}
-
-
+            const shopButtons = document.querySelectorAll(".shop-card");
+            shopButtons.forEach(btn => btn.classList.remove("active"));
+            button.classList.add("active");
+        }
 
         // Load Bookmarks
         async function loadBookmarks() {
@@ -150,5 +127,3 @@ function selectShop(button, shopName) {
     </script>
 </body>
 </html>
-
-
