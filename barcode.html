@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,8 +8,9 @@
     <link rel="stylesheet" href="styles.css"> <!-- Shared styles for consistency -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
 </head>
-<body>
-    <!-- Shared Header -->
+
+<body id="barcode-page">
+
     <header>
         <h1>Barcode Scanner</h1>
     </header>
@@ -28,9 +30,21 @@
 
     <script>
         async function fetchProductDetails(barcode) {
+            const userId = localStorage.getItem("userId"); // Ensure userId is included
+            if (!userId) {
+                console.error("User ID is missing. Cannot fetch product details.");
+                throw new Error("User ID not found. Please log in again.");
+            }
+
             console.log("Fetching details for barcode:", barcode);
 
-            const response = await fetch(`http://localhost:5000/api/products/${barcode}`);
+            const response = await fetch(`http://localhost:5000/api/products/${barcode}`, {
+                method: "GET",
+                headers: {
+                    "x-user-id": userId,
+                },
+            });
+
             if (!response.ok) {
                 const errorText = await response.text();
                 console.error(`Failed to fetch product details: ${errorText}`);
@@ -43,31 +57,39 @@
         }
 
         async function addToCart(product) {
-    console.log("Adding product to cart:", product);
+            const userId = localStorage.getItem("userId"); // Ensure userId is included
+            if (!userId) {
+                console.error("User ID is missing. Cannot add to cart.");
+                throw new Error("User ID not found. Please log in again.");
+            }
 
-    const { product_id, product_name, price } = product;
-    const shop_name = localStorage.getItem("selectedShop");
+            console.log("Adding product to cart:", product);
 
-    if (!product_id || !product_name || typeof price === "undefined" || !shop_name) {
-        console.error("Invalid product data or shop not selected:", { product, shop_name });
-        throw new Error("Product data is incomplete or shop not selected");
-    }
+            const { product_id, product_name, price } = product;
+            const shop_name = localStorage.getItem("selectedShop");
 
-    const response = await fetch("http://localhost:5000/api/cart", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ product_id, product_name, price: parseFloat(price), shop_name }),
-    });
+            if (!product_id || !product_name || typeof price === "undefined" || !shop_name) {
+                console.error("Invalid product data or shop not selected:", { product, shop_name });
+                throw new Error("Product data is incomplete or shop not selected");
+            }
 
-    if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`Failed to add product to cart: ${errorText}`);
-        throw new Error("Failed to add product to cart");
-    }
+            const response = await fetch("http://localhost:5000/api/cart", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "x-user-id": userId, // Add userId as a header
+                },
+                body: JSON.stringify({ product_id, product_name, price: parseFloat(price), shop_name }),
+            });
 
-    console.log("Product added to cart successfully");
-}
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error(`Failed to add product to cart: ${errorText}`);
+                throw new Error("Failed to add product to cart");
+            }
 
+            console.log("Product added to cart successfully");
+        }
 
         function initializeBarcodeScanner() {
             const outputElement = document.getElementById("output");
@@ -126,5 +148,7 @@
             initializeBarcodeScanner();
         });
     </script>
+
 </body>
+
 </html>
