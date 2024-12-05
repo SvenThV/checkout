@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Barcode Scanner</title>
-    <link rel="stylesheet" href="styles.css"> <!-- Shared styles for consistency -->
+    <link rel="stylesheet" href="styles.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
 </head>
 
@@ -30,7 +30,7 @@
 
     <script>
         async function fetchProductDetails(barcode) {
-            const userId = localStorage.getItem("userId"); // Ensure userId is included
+            const userId = localStorage.getItem("userId");
             if (!userId) {
                 console.error("User ID is missing. Cannot fetch product details.");
                 throw new Error("User ID not found. Please log in again.");
@@ -57,7 +57,7 @@
         }
 
         async function addToCart(product) {
-            const userId = localStorage.getItem("userId"); // Ensure userId is included
+            const userId = localStorage.getItem("userId"); 
             if (!userId) {
                 console.error("User ID is missing. Cannot add to cart.");
                 throw new Error("User ID not found. Please log in again.");
@@ -77,7 +77,7 @@
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    "x-user-id": userId, // Add userId as a header
+                    "x-user-id": userId, 
                 },
                 body: JSON.stringify({ product_id, product_name, price: parseFloat(price), shop_name }),
             });
@@ -105,11 +105,11 @@
                         constraints: {
                             width: 480,
                             height: 360,
-                            facingMode: "environment", // Rear camera
+                            facingMode: "environment", 
                         },
                     },
                     decoder: {
-                        readers: ["ean_reader", "code_128_reader"], // Barcode types
+                        readers: ["ean_reader", "code_128_reader"],
                     },
                 },
                 (err) => {
@@ -140,7 +140,7 @@
                     outputElement.textContent = `Error: ${error.message}`;
                 }
 
-                setTimeout(() => scannedBarcodes.delete(barcode), 5000); // Prevent rapid re-scans
+                setTimeout(() => scannedBarcodes.delete(barcode), 5000); 
             });
         }
 
